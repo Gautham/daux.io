@@ -18,11 +18,10 @@ class Parsedown
     #
     # Philosophy
 
-    # Markdown is intended to be easy-to-read by humans - those of us who read
-    # line by line, left to right, top to bottom. In order to take advantage of
-    # this, Parsedown tries to read in a similar way. It breaks texts into
-    # lines, it iterates through them and it looks at how they start and relate
-    # to each other.
+    # Parsedown recognises that the Markdown syntax is optimised for humans so
+    # it tries to read like one. It goes through text line by line. It looks at
+    # how lines start to identify blocks. It looks for special characters to
+    # identify inline elements.
 
     #
     # ~
@@ -63,6 +62,15 @@ class Parsedown
     function setBreaksEnabled($breaksEnabled)
     {
         $this->breaksEnabled = $breaksEnabled;
+
+        return $this;
+    }
+
+    private $markupEscaped;
+
+    function setMarkupEscaped($markupEscaped)
+    {
+        $this->markupEscaped = $markupEscaped;
 
         return $this;
     }
@@ -280,7 +288,7 @@ class Parsedown
 
             $Block = array(
                 'element' => array(
-                    'name' => 'h'.$level,
+                    'name' => 'h' . min(6, $level),
                     'text' => $text,
                     'handler' => 'line',
                 ),
@@ -620,7 +628,12 @@ class Parsedown
 
     protected function identifyMarkup($Line)
     {
-        if (preg_match('/^<(\w[\w\d]*)(?:[ ][^>\/]*)?(\/?)[ ]*>/', $Line['text'], $matches))
+        if ($this->markupEscaped)
+        {
+            return;
+        }
+
+        if (preg_match('/^<(\w[\w\d]*)(?:[ ][^>]*)?(\/?)[ ]*>/', $Line['text'], $matches))
         {
             if (in_array($matches[1], $this->textLevelElements))
             {
@@ -1145,6 +1158,11 @@ class Parsedown
 
     protected function identifyTag($Excerpt)
     {
+        if ($this->markupEscaped)
+        {
+            return;
+        }
+
         if (strpos($Excerpt['text'], '>') !== false and preg_match('/^<\/?\w.*?>/', $Excerpt['text'], $matches))
         {
             return array(
